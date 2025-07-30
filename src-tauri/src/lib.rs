@@ -20,34 +20,26 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-async fn get_random_data() -> Result<String, String> {
+fn get_random_data() -> Result<String, String> {
     // Try to get a random cat fact
-    let client = reqwest::Client::new();
-    
-    match client
-        .get("https://catfact.ninja/fact")
-        .send()
-        .await
-    {
+    match ureq::get("https://catfact.ninja/fact").call() {
         Ok(response) => {
-            match response.json::<CatFact>().await {
+            match response.into_json::<CatFact>() {
                 Ok(cat_fact) => Ok(format!("🐱 Cat Fact: {}", cat_fact.fact)),
                 Err(_) => {
                     // Fallback to a different API
-                    get_random_advice().await
+                    get_random_advice()
                 }
             }
         }
         Err(_) => {
             // Fallback to a different API
-            get_random_advice().await
+            get_random_advice()
         }
     }
 }
 
-async fn get_random_advice() -> Result<String, String> {
-    let client = reqwest::Client::new();
-    
+fn get_random_advice() -> Result<String, String> {
     #[derive(Deserialize)]
     struct AdviceResponse {
         slip: AdviceSlip,
@@ -58,13 +50,9 @@ async fn get_random_advice() -> Result<String, String> {
         advice: String,
     }
     
-    match client
-        .get("https://api.adviceslip.com/advice")
-        .send()
-        .await
-    {
+    match ureq::get("https://api.adviceslip.com/advice").call() {
         Ok(response) => {
-            match response.json::<AdviceResponse>().await {
+            match response.into_json::<AdviceResponse>() {
                 Ok(advice_response) => Ok(format!("💡 Random Advice: {}", advice_response.slip.advice)),
                 Err(e) => Err(format!("Failed to parse advice: {}", e)),
             }
